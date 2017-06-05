@@ -1,0 +1,73 @@
+# Práctica 6 - Configurar 2 discos duros en RAID 1
+
+## Añadiendo discos virtuales
+
+En mi equipo estoy usando como herramienta de virtualización VMWare Player, la cual es la versión gratutita que ofrece. Esta version nos permite añadir discos duros adicionales a los que nos viene por defecto. Para ello en el menu de nuestra maquina virtual pulsamos el boton "Add" y nos mostrara una opcion para añadir hardware a nuestro equipo. En nuestro caso escogemos disco duro, y pulsamos next.
+
+![](Captura41.png)
+
+Escogimos en tipo de disco SCSI que nos viene por defecto. Tras esto pulsamos next hasta que finalice la instalación. Lo dejaremos todo por defecto.
+
+![](Captura42.png)
+
+## Configuración del RAID por software
+
+Ahora  arrancamos  la  máquina  y  entramos  para  instalar  el  software  necesario  para 
+configurar el RAID, para ello ejecutaremos el siguiente comando sudo apt-get install mdadm
+
+
+Una vez instalado el paquete, debemos crear el RAID. Pero antes necesitamos saber la identificación de los dos nuevos discos. Para ello usaremos el comando `sudo fdisk -l`:
+
+![](Captura43.png)
+
+Podemos ver que los identificadores son /dev/sdb y /dev/sdc
+
+Llegado este punto montamos el RAID, lo montaremos en `/dev/md0`:
+
+![](Captura44.png)
+
+Una vez creado, le damos formato ext2, que es el que da `mkfs` por defecto. Para ello usaremos el siguiente comando: sudo mkfs /dev/md0.
+A partir de aqui tuve un problema y se me congelo el ordenador, al apagarse el identificador paso a /dev/md127 que es el que seguira usando a lo largo de la práctica
+
+A continuación, creamos el directorio en el que se montará el RAID y lo montamos:
+
+![](Captura45.png)
+
+Por último, comprobamos el estado del RAID:
+
+![](Captura46.png)
+
+Se puede observar que el RAID tiene dos discos y estos funcionan perfectamente
+
+
+## Montar dispositivos RAID al arrancar el sistema y simular fallos.
+
+Para finalizar el proceso, conviene configurar el sistema para que monte el dispositivo 
+RAID creado al arrancar el sistema. Para ello debemos editar el archivo  /etc/fstab  y 
+añadir   la   línea correspondiente para   montar   automáticamente   dicho   dispositivo.
+Conviene utilizar el identificador único de cada dispositivo de almacenamiento en lugar 
+de simplemente el nombre del dispositivo (aunque ambas opciones son válidas). Para 
+obtener los UUID de todos los dispositivos de almacenamiento que tenemos, debemos 
+ejecutar la orden: ls -l /dev/disk/by-uuid/
+
+![](Captura47.png)
+
+Una vez obtenido, lo añadimos a la última línea del fichero `/etc/fstab`:
+
+![](Captura48.png)
+
+Finalmente,  una  vez  que  esté  funcionando  el  dispositivo  RAID,  podemos  simular  un 
+fallo en uno de los discos:
+
+![](Captura49.png)
+
+En la información sobre el estado del RAID podemos el estado de los discos y vemos cual se ha caido.
+
+Sabiendo cual es podremos retirarlo en caliente
+
+![](Captura50.png)
+
+Finalmente, probamos a añadir el disco de nuevo y ver como se reconstruye.
+
+![](Captura51.png)
+
