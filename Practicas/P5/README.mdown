@@ -1,0 +1,115 @@
+# Práctica 5 -  Replicación de bases de datos MySQL
+
+## Crear una BD e insertar datos
+
+Para  el  resto  de  la  práctica  debemos  crearnos  una  BD  en  MySQL  e  insertar  algunos 
+datos.  Así  tendremos  datos  con  los  cuales  hacer  las  copias  de  seguridad. En todo 
+momento usaremos la interfaz de línea de comandos del MySQL:
+
+Para entrar como root tenemos usar el siguiente comando: sudo mysql -u root -p
+Una vez dentro creamos una base de datos para la practica usando: create database contacto;
+Seleccionamos la BD para trabajar sobre ella usando: use contacto;
+Ahora creamos nuestra primera tabla: create table datos(nombre varchar(100), tlf int);
+Llegado a este punto empezamos a rellanar la tabla usando usando "insert value como se muestra en la imagen" y consultando con un "select * from datos".
+
+![](Captura29.PNG)
+
+## Replicar una BD MySQL con mysqldump
+
+MySQL  ofrece  la  una  herramienta  para  clonar  las  BD  que  tenemos  en  nuestra 
+maquina. Esta herramienta es mysqldump y es parte de los programas  de  cliente  de  MySQL,  que  puede  ser  utilizado 
+para generar copias de seguridadde BD. Puede utilizarse para volcar una o varias BD para copia de seguridad o para  transferir   datos   a   otro servidor SQL. 
+
+Tenemos que tener en cuenta que mientras esto se realiza la base de datos puede esta trabajando primero la bloqueamos con este comando: FLUSH TABLES WITH READ LOCK;
+
+Ahora si podemos guardar los datos y ejecutamos: mysqldump ejemplodb -u root -p > /tmp/ejemplodb.sql
+
+Seguidamente desbloqueamos las tablas: UNLOCK TABLES;
+
+![](Captura30.PNG)
+
+Una vez hecho esto, nos metemos en nuestra maquina secundaria (el esclavo) y podemos pasar a copiar la BD usando el comando: scp maquina1:/tmp/ejemplodb.sql /tmp/
+
+![](Captura31.PNG)
+
+Y podemos restaurar la base de datos usando el comando: mysql -u root -p ejemplodb < /tmp/ejemplodb.sql
+
+![](Captura32.PNG)
+
+## Replicación de BD mediante una configuración maestro-esclavo
+
+Lo  primero  que  debemos  hacer  es  la  configuración  de  mysql  del  maestro.  Para  ello 
+editamos, como root, el /etc/mysql/my.cnf(aunque según la versión de mysql puede que  la  configuración  esté  en  el  archivo 
+/etc/mysql/mysql.conf.d/mysqld.cnf) para realizar las modificaciones que se describen a continuación.
+
+Comentamos el parámetro bind-address que sirve para que escuche a un servidor:
+#bind-address 127.0.0.1
+
+Le indicamos  el  archivo  donde  almacenar  el  log  de  errores. De  esta  forma,  si  por 
+ejemplo al  reiniciar  el  servicio  cometemos  algún  error  en  el  archivo  de  configuración,
+en el archivo de log nos mostrará con detalle lo sucedido: log_error = /var/log/mysql/error.log
+
+Establecemos el identificador del servidor -> server-id = 1
+
+El  registro  binario  contiene  toda  la  información  que  está  disponible  en  el  registro  de 
+actualizaciones, en un formato más eficiente y de una manera que es segura para las 
+transacciones:
+log_bin = /var/log/mysql/bin.log
+
+![](Captura33.PNG)
+
+![](Captura34.PNG)
+
+Reiniciamos el servicio con un sudo /etc/init.d/mysql restart
+
+![](Captura35.PNG)
+
+La configuracion del esclavo sera igual menos el server-id que quedara server-id = 2.
+
+![](Captura36.PNG)
+
+Podemos volver al maestro para crear un usuario y darle permisos de replicación.
+Las ordenes son las siguientes:
+mysql> CREATE USER esclavo IDENTIFIED BY 'esclavo';
+mysql> GRANT   REPLICATION   SLAVE   ON   *.*   TO   'esclavo'@'%' 
+IDENTIFIED BY 'esclavo';
+mysql> FLUSH PRIVILEGES;
+mysql> FLUSH TABLES;
+mysql> FLUSH TABLES WITH READ LOCK;
+
+y obtenemos los datos de la base de datos que vamos a replicar con:
+ mysql> SHOW MASTER STATUS;
+
+
+![](Captura37.PNG)
+
+Ahora pasamos al esclavo e indicamos los datos del maestro:
+mysql> CHANGE  MASTER TO  MASTER_HOST='192.168.202.128', 
+MASTER_USER='esclavo',  MASTER_PASSWORD='esclavo', 
+MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=840, 
+MASTER_PORT=3306;
+
+Nos informa de 2 warning pero pasamos de ellos y arrancamos el esclavo:
+mysql> START SLAVE;
+
+
+![](Captura38.PNG)
+
+Por  último,  volvemos  al  maestro  y  volvemos  a  activar  las  tablas  para  que  puedan 
+meterse nuevos datos en el maestro:
+mysql> UNLOCK TABLES;
+
+Ahora,si queremos asegurarnos de que todo funciona perfectamente y que el esclavo 
+no tiene ningún problema para replicar la información, nos vamos al esclavo y con la 
+siguiente orden:
+mysql> SHOW SLAVE STATUS\G
+revisamos si el valor de
+la variable “Seconds_Behind_Master” es distinto de “null”. En ese caso, todo 
+estará funcionando perfectamente
+
+![](Captura39.PNG)
+
+Ahora hacemos pruebas creando nuevas bases de datos, tablas e insertando datos y vemos que todo se replica perfectamente.
+
+![](Captura40.PNG)
+
