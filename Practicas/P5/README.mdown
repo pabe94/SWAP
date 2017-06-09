@@ -70,20 +70,27 @@ La configuracion del esclavo sera igual menos el server-id que quedara server-id
 
 Podemos volver al maestro para crear un usuario y darle permisos de replicación.
 Las ordenes son las siguientes:
+
 mysql> CREATE USER esclavo IDENTIFIED BY 'esclavo';
+
 mysql> GRANT   REPLICATION   SLAVE   ON   *.*   TO   'esclavo'@'%' 
 IDENTIFIED BY 'esclavo';
+
 mysql> FLUSH PRIVILEGES;
+
 mysql> FLUSH TABLES;
+
 mysql> FLUSH TABLES WITH READ LOCK;
 
 y obtenemos los datos de la base de datos que vamos a replicar con:
+
  mysql> SHOW MASTER STATUS;
 
 
 ![](Captura37.PNG)
 
 Ahora pasamos al esclavo e indicamos los datos del maestro:
+
 mysql> CHANGE  MASTER TO  MASTER_HOST='192.168.202.128', 
 MASTER_USER='esclavo',  MASTER_PASSWORD='esclavo', 
 MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=840, 
@@ -102,7 +109,9 @@ mysql> UNLOCK TABLES;
 Ahora,si queremos asegurarnos de que todo funciona perfectamente y que el esclavo 
 no tiene ningún problema para replicar la información, nos vamos al esclavo y con la 
 siguiente orden:
+
 mysql> SHOW SLAVE STATUS\G
+
 revisamos si el valor de
 la variable “Seconds_Behind_Master” es distinto de “null”. En ese caso, todo 
 estará funcionando perfectamente
