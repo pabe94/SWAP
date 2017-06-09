@@ -22,7 +22,8 @@ para generar copias de seguridadde BD. Puede utilizarse para volcar una o varias
 
 Tenemos que tener en cuenta que mientras esto se realiza la base de datos puede esta trabajando primero la bloqueamos con este comando: FLUSH TABLES WITH READ LOCK;
 
-Ahora si podemos guardar los datos y ejecutamos: mysqldump ejemplodb -u root -p > /tmp/ejemplodb.sql
+Ahora si podemos guardar los datos y ejecutamos: 
+ mysqldump ejemplodb -u root -p > /tmp/ejemplodb.sql
 
 Seguidamente desbloqueamos las tablas: UNLOCK TABLES;
 
